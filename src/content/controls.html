@@ -1,0 +1,42 @@
+<div class="avc-container avc-no-audio avc-paused avc-mouse-in" style="display: none">
+  <button class="avc-play-pause" type="button">
+    <!-- paused -->
+    <svg class="avc-play-icon" viewBox="0 0 24 24">
+      <rect x="6" y="4" width="4" height="16" />
+      <rect x="14" y="4" width="4" height="16" />
+    </svg>
+    <!-- playing -->
+    <svg class="avc-pause-icon" viewBox="0 0 24 24">
+      <polygon points="5,3 19,12 5,21 5,3" />
+    </svg>
+  </button>
+  <input class="avc-progress-bar" type="range" max="1000" min="0" step="1"></input>
+  <span class="avc-timecode">
+    <span class="avc-timecode-current">0:00</span> / <span class="avc-timecode-duration">0:00</span>
+  </span>
+  <button class="avc-mute" type="button">
+    <!-- no sound -->
+    <svg class="avc-no-audio-icon" viewBox="0 0 24 24">
+      <polygon points="13,5 8,9 4,9 4,15 8,15 13,19 13,5" />
+      <line x1="2" y2="4" x2="20" y1="22"></line>
+    </svg>
+    <!-- muted -->
+    <svg class="avc-muted-icon" viewBox="0 0 24 24">
+      <polygon points="11,5 6,9 2,9 2,15 6,15 11,19 11,5" />
+      <line x1="23" y1="9" x2="17" y2="15" />
+      <line x1="17" y1="9" x2="23" y2="15" />
+    </svg>
+    <!-- volume on -->
+    <svg class="avc-loud-icon" viewBox="0 0 24 24">
+      <polygon points="11,5 6,9 2,9 2,15 6,15 11,19 11,5" />
+      <path d="M 19.07 4.93 a 10 10 0 0 1 0 14.14 M 15.54 8.46 a 5 5 0 0 1 0 7.07" />
+    </svg>
+  </button>
+  <input class="avc-volume-bar" type="range" max="100" min="0" step="1"></input>
+  <button class="avc-fullscreen" type="button">
+    <!-- fullscreen -->
+    <svg viewBox="0 0 24 24">
+      <path d="M 8 3 H 5 a 2 2 0 0 0 -2 2 v 3 m 18 0 V 5 a 2 2 0 0 0 -2 -2 h -3 m 0 18 h 3 a 2 2 0 0 0 2 -2 v -3 M 3 16 v 3 a 2 2 0 0 0 2 2 h 3" />
+    </svg>
+  </button>
+</div>

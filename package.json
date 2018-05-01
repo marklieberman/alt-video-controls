@@ -1,0 +1,20 @@
+{
+  "name": "webex-video-controls",
+  "version": "1.0.0",
+  "description": "Alternative controls for video elements",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "gulp dist",
+    "watch": "gulp watch"
+  },
+  "author": "Mark Lieberman",
+  "license": "GPL-3.0",
+  "devDependencies": {
+    "gulp": "^3.9.1",
+    "gulp-jshint": "^2.0.4",
+    "gulp-sass": "^3.1.0",
+    "gulp-zip": "^4.1.0",
+    "jshint": "^2.9.4",
+    "jshint-stylish": "^2.2.1"
+  }
+}

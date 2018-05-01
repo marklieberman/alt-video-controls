@@ -1,0 +1,27 @@
+{
+
+  "manifest_version": 2,
+  "name": "Alternative Video Controls",
+  "version": "1.0.0",
+
+  "description": "Alternative controls for video elements",
+
+  "permissions": [],
+
+  "content_scripts": [
+    {
+      "run_at": "document_idle",
+      "all_frames": true,
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [ "content/controls.js" ],
+      "css": [ "content/controls.css" ]
+    }
+  ],
+
+  "web_accessible_resources": [
+    "content/controls.html"
+  ]
+
+}
