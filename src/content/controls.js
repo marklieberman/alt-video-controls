@@ -206,6 +206,9 @@ function createVideoControls (video) {
   // Disable the native controls.
   video.controls = false;
 
+  // Mute video loops by default.
+  video.muted = !!video.loop;
+
   // Install the custom controls.
   return getTemplate().then(template => {
     // Install and position the controls.
