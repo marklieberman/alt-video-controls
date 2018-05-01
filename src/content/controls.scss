@@ -7,6 +7,11 @@ $avc-progress-color: #00b6f0;
 $avc-hover-color: #48a0f7;
 
 .avc-container {
+  /* Reset all styles within the controls */
+  & > * {
+    all: initial;
+  }
+
   all: initial;
   position: absolute;
   overflow: hidden;
@@ -70,6 +75,7 @@ $avc-hover-color: #48a0f7;
   }
 
   input.avc-progress-bar {
+    all: initial;
     flex: 1 1 auto;
     margin: 0;
 
@@ -111,7 +117,7 @@ $avc-hover-color: #48a0f7;
       width: 100%;
       height: $avc-track-height;
       cursor: pointer;
-      background: #666;
+      background: #000;
       border-radius: 2px;
     }
 

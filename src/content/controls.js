@@ -54,7 +54,6 @@ class VideoControls {
   install () {
     document.body.appendChild(this.template);
 
-    this.video.addEventListener('canplay', this.onVideoCanPlay.bind(this));
     this.video.addEventListener('play', this.onVideoPlaying.bind(this));
     this.video.addEventListener('playing', this.onVideoPlaying.bind(this));
     this.video.addEventListener('pause', this.onVideoPaused.bind(this));
@@ -83,6 +82,13 @@ class VideoControls {
 
     this.timecodeCurrent = this.template.querySelector('.avc-timecode-current');
     this.timecodeDuration = this.template.querySelector('.avc-timecode-duration');
+
+    // Display the controls for the first time once a frame is loaded.
+    if (this.video.readyState > 1) {
+      this.onVideoLoadedData();
+    } else {
+      this.video.addEventListener('loadeddata', this.onVideoLoadedData.bind(this));
+    }
   }
 
   // Remove the video controls from the DOM.
@@ -100,7 +106,7 @@ class VideoControls {
 
   // Video events
 
-  onVideoCanPlay () {
+  onVideoLoadedData () {
     // Configure the audio portion of the controls.
     this.updateVolumeControls(this.video.volume, this.video.muted);
     if (this.video.mozHasAudio) {
@@ -199,9 +205,6 @@ class VideoControls {
 function createVideoControls (video) {
   // Disable the native controls.
   video.controls = false;
-
-  // Mute videos by default.
-  video.muted = true;
 
   // Install the custom controls.
   return getTemplate().then(template => {
