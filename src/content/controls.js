@@ -1,44 +1,24 @@
 'use strict';
 
+// Global state for video controls on this page.
 const state = {
-  videoControls: new WeakMap()
+  videoControls: null,
+  alwaysMute: false
 };
 
-// Create controls for all existing video elements.
-[].slice.call(document.getElementsByTagName('video'))
-  .forEach(video => createVideoControls(video));
+// Load settings from storage and initialize video controls.
+browser.storage.local.get({
+  blacklist: [],
+  whitelistMode: false,
+  alwaysMute: false
+}).then(results => {
+  state.alwaysMute = results.alwaysMute;
 
-// Find all mutations that add or remove a video element.
-const observer = new window.MutationObserver(mutationList => {
-  for (var mutation of mutationList) {
-    if (mutation.type === 'childList') {
-      if (mutation.addedNodes.length) {
-        for (var addedNode of mutation.addedNodes) {
-          if (addedNode.tagName === 'VIDEO') {
-            // Create controls for any added video elements.
-            createVideoControls(addedNode);
-          }
-        }
-      }
-      if (mutation.removedNodes.length) {
-        for (var removedNode of mutation.removedNodes) {
-          if (removedNode.tagName === 'VIDEO') {
-            // Destroy controls for any removed video elements.
-            let controls = state.videoControls.get(removedNode);
-            if (controls != null) {
-              destroyVideoControls(controls);
-            }
-          }
-        }
-      }
-    }
+  // Check if this URL is blacklisted.
+  let inBlacklist = results.blacklist.some(pattern => globMatches(pattern, window.location.href));
+  if ((results.whitelistMode && inBlacklist) || (!results.whitelistMode && !inBlacklist)) {
+    return initializeVideoControls();
   }
-});
-
-// Begin observing changes to the DOM.
-observer.observe(document.body, {
-  childList: true,
-  subtree: true
 });
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -201,13 +181,57 @@ class VideoControls {
 
 // ---------------------------------------------------------------------------------------------------------------------
 
+// Initialize alternative video controls for video elements on this page.
+function initializeVideoControls () {
+  state.videoControls = new WeakMap();
+
+  // Create controls for all existing video elements.
+  [].slice.call(document.getElementsByTagName('video'))
+    .forEach(video => createVideoControls(video));
+
+  // Find all mutations that add or remove a video element.
+  const observer = new window.MutationObserver(mutationList => {
+    for (var mutation of mutationList) {
+      if (mutation.type === 'childList') {
+        if (mutation.addedNodes.length) {
+          for (var addedNode of mutation.addedNodes) {
+            if (addedNode.tagName === 'VIDEO') {
+              // Create controls for any added video elements.
+              createVideoControls(addedNode);
+            }
+          }
+        }
+        if (mutation.removedNodes.length) {
+          for (var removedNode of mutation.removedNodes) {
+            if (removedNode.tagName === 'VIDEO') {
+              // Destroy controls for any removed video elements.
+              let controls = state.videoControls.get(removedNode);
+              if (controls != null) {
+                destroyVideoControls(controls);
+              }
+            }
+          }
+        }
+      }
+    }
+  });
+
+  // Begin observing changes to the DOM.
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true
+  });
+}
+
 // Create controls on a video element.
 function createVideoControls (video) {
   // Disable the native controls.
   video.controls = false;
 
-  // Mute video loops by default.
-  video.muted = !!video.loop;
+  // Mute video when requested.
+  if (state.alwaysMute) {
+    video.muted = true;
+  }
 
   // Install the custom controls.
   return getTemplate().then(template => {
@@ -255,4 +279,28 @@ function formatTime (time) {
   } else {
     return String(mins) + ':' + String(secs).padStart(2, '0');
   }
+}
+
+// Match a simple glob pattern against an input.
+function globMatches (glob, input) {
+  // Get the *-delimited parts of the glob.
+  let parts = glob.split('*');
+  let firstPart = parts[0];
+  let lastPart = parts[parts.length - 1];
+
+  // If the glob is longer than the string, it can't match.
+  if (parts.join('').length > input.length) {
+    return false;
+  }
+
+  let part, index = 0;
+  while ((part = parts.shift()) !== undefined) {
+    // Check if this part of the glob can be found in the string, after the previous part.
+    index = input.indexOf(part, index);
+    if (!~index) {
+      return false;
+    }
+  }
+
+  return true;
 }

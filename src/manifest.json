@@ -6,7 +6,9 @@
 
   "description": "Alternative controls for video elements",
 
-  "permissions": [],
+  "permissions": [
+    "storage"
+  ],
 
   "content_scripts": [
     {
@@ -22,6 +24,12 @@
 
   "web_accessible_resources": [
     "content/controls.html"
-  ]
+  ],
+
+  "options_ui": {
+    "browser_style": true,
+    "page": "options/options.html",
+    "open_in_tab": false
+  }
 
 }
