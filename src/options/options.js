@@ -1,3 +1,5 @@
+'use strict';
+
 // Initialize the options interface.
 let inputAlwaysMute = document.getElementById('always-mute');
 let inputBlacklist = document.getElementById('blacklist');
