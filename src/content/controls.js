@@ -78,10 +78,13 @@ class VideoControls {
 
   // Position the controls over the video.
   position () {
-    var bounds = this.video.getBoundingClientRect();
-    this.template.style.top = (window.scrollY + bounds.top + bounds.height - this.template.clientHeight) + 'px';
-    this.template.style.left = bounds.left + 'px';
-    this.template.style.width = bounds.width + 'px';
+    var self = this;
+    window.requestAnimationFrame(() => {
+      var bounds = self.video.getBoundingClientRect();
+      self.template.style.top = (window.scrollY + bounds.top + bounds.height - self.template.clientHeight) + 'px';
+      self.template.style.left = bounds.left + 'px';
+      self.template.style.width = bounds.width + 'px';
+    });
   }
 
   // Video events
@@ -118,6 +121,7 @@ class VideoControls {
 
   onVideoMouseEnter () {
     this.template.classList.add('avc-mouse-in');
+    this.position();
   }
 
   onVideoMouseLeave () {
