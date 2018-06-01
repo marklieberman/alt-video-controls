@@ -3,21 +3,48 @@
 // Global state for video controls on this page.
 const state = {
   videoControls: null,
-  alwaysMute: false
+  tabIsLoud: false,
+  defaultMute: true
 };
 
 // Load settings from storage and initialize video controls.
 browser.storage.local.get({
   blacklist: [],
   whitelistMode: false,
-  alwaysMute: false
+  alwaysMute: true
 }).then(results => {
-  state.alwaysMute = results.alwaysMute;
-
   // Check if this URL is blacklisted.
-  let inBlacklist = results.blacklist.some(pattern => globMatches(pattern, window.location.href));
-  if ((results.whitelistMode && inBlacklist) || (!results.whitelistMode && !inBlacklist)) {
-    return initializeVideoControls();
+  let blacklisted = results.whitelistMode ^ results.blacklist.some(pattern => {
+    return globMatches(pattern, window.location.href);
+  });
+  if (!blacklisted) {
+    // Check if videos on this origin should be muted.
+    return browser.runtime.sendMessage({
+      topic: 'avc-getInitialState',
+      data: {
+        origin: window.location.origin
+      }
+    }).then(data => {
+      // Set the default muted or unmuted for videos.
+      state.tabIsLoud = data.tabIsLoud ? true : !results.alwaysMute;
+
+      // Install video controls for video elements.
+      return initializeVideoControls();
+    });
+  }
+});
+
+// Handle messages from the background script.
+browser.runtime.onMessage.addListener((message, sender) => {
+  switch (message.topic) {
+    case 'avc-getTabIsLoud':
+      return Promise.resolve({
+        origin: window.location.origin,
+        tabIsLoud: state.tabIsLoud
+      });
+    case 'avc-setTabIsLoud':
+      state.tabIsLoud = message.data;
+      break;
   }
 });
 
@@ -233,9 +260,7 @@ function createVideoControls (video) {
   video.controls = false;
 
   // Mute video when requested.
-  if (state.alwaysMute) {
-    video.muted = true;
-  }
+  video.muted = !state.tabIsLoud;
 
   // Install the custom controls.
   return getTemplate().then(template => {

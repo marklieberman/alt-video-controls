@@ -7,8 +7,20 @@
   "description": "Alternative controls for video elements",
 
   "permissions": [
-    "storage"
+    "storage",
+    "tabs"
   ],
+
+  "browser_action": {
+    "default_title": "Un-mute videos on this domain",
+    "default_icon": "icons/mute.svg"
+  },
+
+  "background": {
+    "scripts": [
+      "background/background.js"
+    ]
+  },
 
   "content_scripts": [
     {
@@ -29,7 +41,7 @@
   "options_ui": {
     "browser_style": true,
     "page": "options/options.html",
-    "open_in_tab": false
+    "open_in_tab": true
   }
 
 }
