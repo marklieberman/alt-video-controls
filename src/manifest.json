@@ -41,7 +41,7 @@
   "options_ui": {
     "browser_style": true,
     "page": "options/options.html",
-    "open_in_tab": true
+    "open_in_tab": false
   }
 
 }
