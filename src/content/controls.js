@@ -4,14 +4,17 @@
 const state = {
   videoControls: null,
   tabIsLoud: false,
+  initialVolume: null,
   defaultMute: true
 };
 
 // Load settings from storage and initialize video controls.
 browser.storage.local.get({
+  alwaysMute: true,
+  setVolume: false,
+  initialVolume: 50,
   blacklist: [],
-  whitelistMode: false,
-  alwaysMute: true
+  whitelistMode: false
 }).then(results => {
   // Check if this URL is blacklisted.
   let blacklisted = results.whitelistMode ^ results.blacklist.some(pattern => {
@@ -27,6 +30,9 @@ browser.storage.local.get({
     }).then(data => {
       // Set the default muted or unmuted for videos.
       state.tabIsLoud = data.tabIsLoud ? true : !results.alwaysMute;
+
+      // Set the default initial volume for videos.
+      state.initialVolume = results.setVolume ? (results.initialVolume / 100.0) : null;
 
       // Install video controls for video elements.
       return initializeVideoControls();
@@ -259,8 +265,13 @@ function createVideoControls (video) {
   // Disable the native controls.
   video.controls = false;
 
-  // Mute video when requested.
+  // Set initial muted state for the video.
   video.muted = !state.tabIsLoud;
+
+  // Set initial volume for the video.
+  if (state.initalVolume !== null) {
+    video.volume = state.initialVolume;
+  }
 
   // Install the custom controls.
   return getTemplate().then(template => {

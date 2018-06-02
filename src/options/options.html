@@ -10,36 +10,59 @@
           crossorigin="anonymous">
   </head>
   <body>
-    <div class="container">
-      <form id="options-form">
-        <div class="form-group">
-          <div class="form-check">
-            <input class="form-check-input" type="checkbox" id="always-mute">
-            <label class="form-check-label" for="always-mute">
-              Always mute videos
-            </label>
-          </div>
-        </div>
+    <form id="options-form">
+      <div class="container-fluid">
+        <h4>Alt Video Controls Options</h4>
 
-        <div class="form-group">
-          <label for="blacklist">Blacklist or Whitelist</label>
-          <textarea class="form-control" id="blacklist" rows="5"></textarea>
-        </div>
+        <div class="row">
+          <div class="col-md-6">
+            <div class="form-group">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="always-mute">
+                <label class="form-check-label" for="always-mute">
+                  Always mute videos
+                </label>
+              </div>
+            </div>
+            <div class="form-group">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="set-volume">
+                <label class="form-check-label" for="set-volume">
+                  Set initial volume to:
+                </label>
+              </div>
+              <div class="input-group mb-3">
+                <input class="form-control" type="number" id="initial-volume"
+                       step="1" min="1" max="100"></input>
+                <div class="input-group-append">
+                  <span class="input-group-text">%</span>
+                </div>
+              </div>
+            </div>
+            <div class="form-group">
+              <button class="btn btn-primary" type="submit">Save</button>
+            </div>
+          </div><!-- /col -->
 
-        <div class="form-group">
-          <div class="form-check">
-            <input class="form-check-input" type="checkbox" id="whitelist-mode">
-            <label class="form-check-label" for="whitelist-mode">
-              Whitelist mode
-            </label>
-          </div>
-        </div>
+          <div class="col-md-6">
+            <div class="form-group">
+              <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio" id="blacklist-mode"
+                       name="whitelistMode" value="blacklist" checked="true">
+                <label class="form-check-label" for="blacklist-mode">Blacklist</label>
+              </div>
+              <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio" id="whitelist-mode"
+                       name="whitelistMode" value="whitelist">
+                <label class="form-check-label" for="whitelist-mode">Whitelist</label>
+              </div>
+              <textarea class="form-control" id="blacklist" rows="5"></textarea>
+            </div>
+          </div><!-- /col -->
+        </div><!-- /row -->
 
-        <div class="form-group">
-          <button class="btn btn-primary" type="submit">Save</button>
-        </div>
-      </form>
-    </div>
+      </div>
+    </form>
 
     <script src="/options/options.js" type="text/javascript"></script>
   </body>

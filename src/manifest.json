@@ -13,7 +13,8 @@
 
   "browser_action": {
     "default_title": "Un-mute videos on this domain",
-    "default_icon": "icons/mute.svg"
+    "default_icon": "icons/mute.svg",
+    "browser_style": false
   },
 
   "background": {
@@ -39,9 +40,9 @@
   ],
 
   "options_ui": {
-    "browser_style": true,
-    "page": "options/options.html",
-    "open_in_tab": false
+    "open_in_tab": false,
+    "browser_style": false,
+    "page": "options/options.html"
   }
 
 }
