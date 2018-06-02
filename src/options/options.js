@@ -10,13 +10,13 @@ let radioWhitelistMode = document.getElementById('whitelist-mode');
 browser.storage.local.get({
   alwaysMute: false,
   setVolume: false,
-  initalVolume: 50,
+  initialVolume: 50,
   blacklist: [],
   whitelistMode: false
 }).then(results => {
   inputAlwaysMute.checked = results.alwaysMute;
   inputSetVolume.checked = results.setVolume;
-  inputInitialVolume.value = results.initalVolume;
+  inputInitialVolume.value = results.initialVolume;
   inputBlacklist.value = results.blacklist.join('\n');
   radioWhitelistMode.checked = results.whitelistMode;
 });
