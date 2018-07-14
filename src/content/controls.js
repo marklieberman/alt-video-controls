@@ -5,7 +5,8 @@ const state = {
   videoControls: null,
   tabIsLoud: false,
   initialVolume: null,
-  defaultMute: true
+  defaultMute: true,
+  visibilityHandle: null
 };
 
 // Load settings from storage and initialize video controls.
@@ -120,6 +121,11 @@ class VideoControls {
     });
   }
 
+  // Update the visibility of the controls.
+  visiblity () {
+    this.template.style.display = this.video.offsetParent ? 'flex' : 'none';
+  }
+
   // Video events
 
   onVideoLoadedData () {
@@ -220,7 +226,9 @@ class VideoControls {
 
 // Initialize alternative video controls for video elements on this page.
 function initializeVideoControls () {
-  state.videoControls = new WeakMap();
+  /* jshint loopfunc:true*/
+
+  state.videoControls = new Map();
 
   // Create controls for all existing video elements.
   [].slice.call(document.getElementsByTagName('video'))
@@ -231,22 +239,25 @@ function initializeVideoControls () {
     for (var mutation of mutationList) {
       if (mutation.type === 'childList') {
         if (mutation.addedNodes.length) {
-          for (var addedNode of mutation.addedNodes) {
-            if (addedNode.tagName === 'VIDEO') {
-              // Create controls for any added video elements.
-              createVideoControls(addedNode);
-            }
+          for (let addedNode of mutation.addedNodes) {
+            // Create controls for any added video elements.
+            findVideoElements(addedNode).forEach(videoNode => {
+              let controls = state.videoControls.get(videoNode);
+              if (!controls) {
+                createVideoControls(videoNode);
+              }
+            });
           }
         }
         if (mutation.removedNodes.length) {
-          for (var removedNode of mutation.removedNodes) {
-            if (removedNode.tagName === 'VIDEO') {
-              // Destroy controls for any removed video elements.
-              let controls = state.videoControls.get(removedNode);
-              if (controls != null) {
+          for (let removedNode of mutation.removedNodes) {
+            // Destroy controls for any removed video elements.
+            findVideoElements(removedNode).forEach(videoNode => {
+              let controls = state.videoControls.get(videoNode);
+              if (!!controls) {
                 destroyVideoControls(controls);
               }
-            }
+            });
           }
         }
       }
@@ -258,6 +269,18 @@ function initializeVideoControls () {
     childList: true,
     subtree: true
   });
+}
+
+function findVideoElements (element, accumulator = []) {
+  if (element.tagName === 'VIDEO') {
+    accumulator.push(element);
+  } else
+  if (element.children) {
+     Array.from(element.children).forEach(child => {
+      findVideoElements(child, accumulator);
+    });
+  }
+  return accumulator;
 }
 
 // Create controls on a video element.
@@ -272,6 +295,9 @@ function createVideoControls (video) {
   if (state.initalVolume !== null) {
     video.volume = state.initialVolume;
   }
+
+  // Start watching visibility of the controls.
+  startWatchingVisiblity();
 
   // Install the custom controls.
   return getTemplate().then(template => {
@@ -288,6 +314,34 @@ function destroyVideoControls (controls) {
   // Remove the controls from the DOM.
   state.videoControls.delete(controls.video);
   controls.remove();
+
+  // Stop watching visibility if all controls are gone.
+  if (!state.videoControls.size) {
+    stopWatchingVisiblity();
+  }
+}
+
+// Start watching the visibility of all video controls.
+function startWatchingVisiblity () {
+  if (!state.visibilityHandle) {
+    window.setTimeout(watchVisiblity, 0);
+  }
+}
+
+// Stop watching the visibility of all video controls.
+function stopWatchingVisiblity () {
+  if (state.visibilityHandle) {
+    window.clearTimeout(state.visibilityHandle);
+    state.visibilityHandle = null;
+  }
+}
+
+// Update the visibility of all video controls.
+function watchVisiblity () {
+  state.videoControls.forEach(function (controls) {
+    controls.visiblity();
+  });
+  window.setTimeout(watchVisiblity, 200);
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
