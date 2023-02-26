@@ -1,12 +1,56 @@
 'use strict';
 
+// Inline the controls template.
+const controlsHtml = `<div class="avc-container avc-no-audio avc-paused" style="display: none">
+  <button class="avc-play-pause" type="button">
+    <!-- paused -->
+    <svg class="avc-play-icon" viewBox="0 0 24 24">
+      <rect x="6" y="4" width="4" height="16" />
+      <rect x="14" y="4" width="4" height="16" />
+    </svg>
+    <!-- playing -->
+    <svg class="avc-pause-icon" viewBox="0 0 24 24">
+      <polygon points="5,3 19,12 5,21 5,3" />
+    </svg>
+  </button>
+  <input class="avc-progress-bar" type="range" max="1000" min="0" step="1" value="0"></input>
+  <span class="avc-timecode">
+    <span class="avc-timecode-current">0:00</span> / <span class="avc-timecode-duration">0:00</span>
+  </span>
+  <button class="avc-mute" type="button">
+    <!-- no sound -->
+    <svg class="avc-no-audio-icon" viewBox="0 0 24 24">
+      <polygon points="13,5 8,9 4,9 4,15 8,15 13,19 13,5" />
+      <line x1="2" y2="4" x2="20" y1="22"></line>
+    </svg>
+    <!-- muted -->
+    <svg class="avc-muted-icon" viewBox="0 0 24 24">
+      <polygon points="11,5 6,9 2,9 2,15 6,15 11,19 11,5" />
+      <line x1="23" y1="9" x2="17" y2="15" />
+      <line x1="17" y1="9" x2="23" y2="15" />
+    </svg>
+    <!-- volume on -->
+    <svg class="avc-loud-icon" viewBox="0 0 24 24">
+      <polygon points="11,5 6,9 2,9 2,15 6,15 11,19 11,5" />
+      <path d="M 19.07 4.93 a 10 10 0 0 1 0 14.14 M 15.54 8.46 a 5 5 0 0 1 0 7.07" />
+    </svg>
+  </button>
+  <input class="avc-volume-bar" type="range" max="100" min="0" step="1"></input>
+  <button class="avc-fullscreen" type="button">
+    <!-- fullscreen -->
+    <svg viewBox="0 0 24 24">
+      <path d="M 8 3 H 5 a 2 2 0 0 0 -2 2 v 3 m 18 0 V 5 a 2 2 0 0 0 -2 -2 h -3 m 0 18 h 3 a 2 2 0 0 0 2 -2 v -3 M 3 16 v 3 a 2 2 0 0 0 2 2 h 3" />
+    </svg>
+  </button>
+</div>`;
+
 // Global state for video controls on this page.
 const state = {
+  avcBarHeight: 32,
   videoControls: null,
   tabIsLoud: false,
   initialVolume: null,
-  defaultMute: true,
-  visibilityHandle: null
+  defaultMute: true
 };
 
 // Load settings from storage and initialize video controls.
@@ -16,33 +60,30 @@ browser.storage.local.get({
   initialVolume: 50,
   blacklist: [],
   whitelistMode: false
-}).then(results => {
+}).then(async (results) => {
   // Check if this URL is blacklisted.
-  let blacklisted = results.whitelistMode ^ results.blacklist.some(pattern => {
-    return globMatches(pattern, window.location.href);
-  });
+  const blacklisted = results.whitelistMode ^ results.blacklist
+    .some(pattern => globMatches(pattern, window.location.href));
   if (!blacklisted) {
     // Check if videos on this origin should be muted.
-    return browser.runtime.sendMessage({
+    let initialState = await browser.runtime.sendMessage({
       topic: 'avc-getInitialState',
       data: {
         origin: window.location.origin
       }
-    }).then(data => {
-      // Set the default muted or unmuted for videos.
-      state.tabIsLoud = data.tabIsLoud ? true : !results.alwaysMute;
-
-      // Set the default initial volume for videos.
-      state.initialVolume = results.setVolume ? (results.initialVolume / 100.0) : null;
-
-      // Install video controls for video elements.
-      return initializeVideoControls();
     });
+
+    // Set initial values for videos with audio.
+    state.initialVolume = results.setVolume ? (results.initialVolume / 100.0) : null;
+    state.tabIsLoud = initialState.tabIsLoud ? true : !results.alwaysMute;
+
+    // Install video controls for video elements.
+    return initializeVideoControls();
   }
 });
 
 // Handle messages from the background script.
-browser.runtime.onMessage.addListener((message, sender) => {
+browser.runtime.onMessage.addListener((message) => {
   switch (message.topic) {
     case 'avc-getTabIsLoud':
       return Promise.resolve({
@@ -55,13 +96,36 @@ browser.runtime.onMessage.addListener((message, sender) => {
   }
 });
 
-// ---------------------------------------------------------------------------------------------------------------------
+// --------------------------------------------------------------------------------------------------------------------
 
 // Model/controller for video controls.
 class VideoControls {
   constructor (video, template) {
     this.video = video;
     this.template = template;
+
+    this.el = {};
+
+    this.resizeObserver = new ResizeObserver(() => {
+      this.onResized(false);
+    });
+
+    this.intersectionObserver = new IntersectionObserver((entries) => {
+      this.onIntersect(entries[0].isIntersecting);
+    }, {
+      root: video.offsetParent,
+      threshold: 0
+    });    
+  }
+
+  static create(video) {
+    const template = document.createElement('template');
+    template.innerHTML = controlsHtml;
+
+    const videoControls = new VideoControls(video, template.content.firstChild);    
+    videoControls.install();
+
+    return videoControls;
   }
 
   // Add the video controls to the DOM and bind events.
@@ -79,25 +143,26 @@ class VideoControls {
     this.video.addEventListener('mouseenter', this.onVideoMouseEnter.bind(this));
     this.video.addEventListener('mouseleave', this.onVideoMouseLeave.bind(this));
 
-    this.fullscreenButton = this.template.querySelector('.avc-fullscreen');
-    this.fullscreenButton.addEventListener('click', this.onFullScreenButtonClick.bind(this));
+    this.el = {
+      fullscreenButton: this.template.querySelector('.avc-fullscreen'),
+      muteButton: this.template.querySelector('.avc-mute'),
+      playPauseButton: this.template.querySelector('.avc-play-pause'),
+      progressBar: this.template.querySelector('.avc-progress-bar'),
+      volumeBar: this.template.querySelector('.avc-volume-bar'),
+      timecodeCurrent: this.template.querySelector('.avc-timecode-current'),
+      timecodeDuration: this.template.querySelector('.avc-timecode-duration')
+    };
 
-    this.muteButton = this.template.querySelector('.avc-mute');
-    this.muteButton.addEventListener('click', this.onMuteButtonClick.bind(this));
+    this.el.fullscreenButton.addEventListener('click', this.onFullScreenButtonClick.bind(this));
+    this.el.muteButton.addEventListener('click', this.onMuteButtonClick.bind(this));
+    this.el.playPauseButton.addEventListener('click', this.onPlayPauseButtonClick.bind(this));
+    this.el.progressBar.addEventListener('change', this.onProgressBarChange.bind(this));
+    this.el.volumeBar.addEventListener('change', this.onVolumeBarChange.bind(this));
 
-    this.playPauseButton = this.template.querySelector('.avc-play-pause');
-    this.playPauseButton.addEventListener('click', this.onPlayPauseButtonClick.bind(this));
+    this.resizeObserver.observe(this.video);
+    this.intersectionObserver.observe(this.video);
 
-    this.progressBar = this.template.querySelector('.avc-progress-bar');
-    this.progressBar.addEventListener('change', this.onProgressBarChange.bind(this));
-
-    this.volumeBar = this.template.querySelector('.avc-volume-bar');
-    this.volumeBar.addEventListener('change', this.onVolumeBarChange.bind(this));
-
-    this.timecodeCurrent = this.template.querySelector('.avc-timecode-current');
-    this.timecodeDuration = this.template.querySelector('.avc-timecode-duration');
-
-    // Display the controls for the first time once a frame is loaded.
+    // Initialize the controls once the video data is available.
     if (this.video.readyState > 1) {
       this.onVideoLoadedData();
     } else {
@@ -106,38 +171,59 @@ class VideoControls {
   }
 
   // Remove the video controls from the DOM.
-  remove () {
+  remove () {    
+    this.resizeObserver.disconnect();
+    this.intersectionObserver.disconnect();
     this.template.parentNode.removeChild(this.template);
   }
 
-  // Position the controls over the video.
-  position () {
-    var self = this;
-    window.requestAnimationFrame(() => {
-      var bounds = self.video.getBoundingClientRect();
-      self.template.style.top = (window.scrollY + bounds.top + bounds.height - self.template.clientHeight) + 'px';
-      self.template.style.left = bounds.left + 'px';
-      self.template.style.width = bounds.width + 'px';
-    });
+  // Resize and reposition the controls overlay.
+  onResized (useAnimFrame) {
+    function stipPx (value) {
+      return Number(value.substring(0, value.length - 2));
+    }
+
+    const callback = () => {
+      const bounds = this.video.getBoundingClientRect(),
+            styles = window.getComputedStyle(this.video, null);
+
+      let marginLeft = 0,
+          marginRight = 0,
+          marginTop = 0,
+          marginBottom = 0;
+
+      if (styles.getPropertyValue('box-sizing') === 'context-box') {
+        marginLeft = stipPx(styles.getPropertyValue('margin-left'));
+        marginRight = stipPx(styles.getPropertyValue('margin-right'));  
+        marginTop = stipPx(styles.getPropertyValue('margin-top'));
+        marginBottom = stipPx(styles.getPropertyValue('margin-bottom'));
+      }
+
+      this.template.style.top = (window.scrollY + bounds.top + bounds.height + marginTop - marginBottom - state.avcBarHeight) + 'px';
+      this.template.style.left = (window.scrollX + bounds.left + marginLeft - marginRight) + 'px';
+      this.template.style.width = bounds.width + 'px';
+    };
+
+    if (useAnimFrame) {
+      window.requestAnimationFrame(callback);
+    } else {
+      callback();
+    }
   }
 
-  // Update the visibility of the controls.
-  visiblity () {
-    this.template.style.display = this.video.offsetParent ? 'flex' : 'none';
+  // Show the controls overlay when the video element is visible.
+  onIntersect (isIntersecting) {
+    this.template.style.display = isIntersecting ? 'flex' : 'none';    
   }
 
+  // ------------------------------------------------------------------------------------------------------------------
   // Video events
 
   onVideoLoadedData () {
-    // Configure the audio portion of the controls.
     this.updateVolumeControls(this.video.volume, this.video.muted);
     if (this.video.mozHasAudio) {
       this.template.classList.remove('avc-no-audio');
     }
-
-    // Make the controls visible for the first time.
-    this.template.style.display = 'flex';
-    this.position();
   }
 
   onVideoPlaying () {
@@ -160,17 +246,46 @@ class VideoControls {
 
   onVideoMouseEnter () {
     this.template.classList.add('avc-mouse-in');
-    this.position();
   }
 
   onVideoMouseLeave () {
     this.template.classList.remove('avc-mouse-in');
   }
 
+  // ------------------------------------------------------------------------------------------------------------------
+  // Controls interface.
+
+  // Update the controls that display the video progress.
+  updateProgressControls (currentTime, duration) {
+    this.el.progressBar.value = 1000 * (currentTime / duration);
+    this.el.timecodeCurrent.innerText = formatTime(currentTime);
+    this.el.timecodeDuration.innerText = formatTime(duration);
+  }
+
+  // Update the controls that display the video volume.
+  updateVolumeControls (amount, muted) {
+    if (muted) {
+      this.template.classList.add('avc-muted');
+      this.el.volumeBar.value = 0;
+    } else {
+      this.template.classList.remove('avc-muted');
+      this.el.volumeBar.value = 100 * amount;
+    }
+  }
+
+  // ------------------------------------------------------------------------------------------------------------------
   // Control events
 
-  onFullScreenButtonClick () {
-    this.video.mozRequestFullScreen();
+  onPlayPauseButtonClick () {
+    if (this.video.paused) {
+      this.video.play();
+    } else {
+      this.video.pause();
+    }
+  }
+
+  onProgressBarChange () {
+    this.video.currentTime = (this.el.progressBar.value / 1000) * this.video.duration;
   }
 
   onMuteButtonClick () {
@@ -184,51 +299,36 @@ class VideoControls {
     }
   }
 
-  onPlayPauseButtonClick () {
-    if (this.video.paused) {
-      this.video.play();
-    } else {
-      this.video.pause();
-    }
-  }
-
-  onProgressBarChange () {
-    this.video.currentTime = (this.progressBar.value / 1000) * this.video.duration;
-  }
-
   onVolumeBarChange () {
-    this.video.volume = (this.volumeBar.value / 100);
-    this.video.muted = (this.volumeBar.value <= 0);
+    this.video.volume = (this.el.volumeBar.value / 100);
+    this.video.muted = (this.el.volumeBar.value <= 0);
   }
 
-  // Control interface
-
-  // Update the controls that display the video progress.
-  updateProgressControls (currentTime, duration) {
-    this.progressBar.value = 1000 * (currentTime / duration);
-    this.timecodeCurrent.innerText = formatTime(currentTime);
-    this.timecodeDuration.innerText = formatTime(duration);
-  }
-
-  // Update the controls that display the video volume.
-  updateVolumeControls (amount, muted) {
-    if (muted) {
-      this.template.classList.add('avc-muted');
-      this.volumeBar.value = 0;
-    } else {
-      this.template.classList.remove('avc-muted');
-      this.volumeBar.value = 100 * amount;
-    }
+  onFullScreenButtonClick () {
+    this.video.mozRequestFullScreen();
   }
 }
 
-// ---------------------------------------------------------------------------------------------------------------------
+// --------------------------------------------------------------------------------------------------------------------
+
+// Find all video elements in a DOM tree.
+function findVideoElements (startElement, accumulator = []) {
+  if (startElement.tagName === 'VIDEO') {
+    accumulator.push(startElement);
+  } else
+  if (startElement.children) {
+     Array.from(startElement.children).forEach(child => {
+      findVideoElements(child, accumulator);
+    });
+  }
+  return accumulator;
+}
 
 // Initialize alternative video controls for video elements on this page.
 function initializeVideoControls () {
   /* jshint loopfunc:true*/
 
-  state.videoControls = new Map();
+  state.videoControls = new WeakMap();
 
   // Create controls for all existing video elements.
   [].slice.call(document.getElementsByTagName('video'))
@@ -254,7 +354,7 @@ function initializeVideoControls () {
             // Destroy controls for any removed video elements.
             findVideoElements(removedNode).forEach(videoNode => {
               let controls = state.videoControls.get(videoNode);
-              if (!!controls) {
+              if (controls) {
                 destroyVideoControls(controls);
               }
             });
@@ -271,18 +371,6 @@ function initializeVideoControls () {
   });
 }
 
-function findVideoElements (element, accumulator = []) {
-  if (element.tagName === 'VIDEO') {
-    accumulator.push(element);
-  } else
-  if (element.children) {
-     Array.from(element.children).forEach(child => {
-      findVideoElements(child, accumulator);
-    });
-  }
-  return accumulator;
-}
-
 // Create controls on a video element.
 function createVideoControls (video) {
   // Disable the native controls.
@@ -292,21 +380,13 @@ function createVideoControls (video) {
   video.muted = !state.tabIsLoud;
 
   // Set initial volume for the video.
-  if (state.initalVolume !== null) {
+  if (state.initialVolume !== null) {
     video.volume = state.initialVolume;
   }
 
-  // Start watching visibility of the controls.
-  startWatchingVisiblity();
-
-  // Install the custom controls.
-  return getTemplate().then(template => {
-    // Install and position the controls.
-    let controls = new VideoControls(video, template);
-    state.videoControls.set(video, controls);
-    controls.install();
-    controls.position();
-  });
+  // Install and position the controls.
+  const controls = VideoControls.create(video);
+  state.videoControls.set(video, controls);
 }
 
 // Destroy the controls for a video element.
@@ -314,53 +394,9 @@ function destroyVideoControls (controls) {
   // Remove the controls from the DOM.
   state.videoControls.delete(controls.video);
   controls.remove();
-
-  // Stop watching visibility if all controls are gone.
-  if (!state.videoControls.size) {
-    stopWatchingVisiblity();
-  }
 }
 
-// Start watching the visibility of all video controls.
-function startWatchingVisiblity () {
-  if (!state.visibilityHandle) {
-    window.setTimeout(watchVisiblity, 0);
-  }
-}
-
-// Stop watching the visibility of all video controls.
-function stopWatchingVisiblity () {
-  if (state.visibilityHandle) {
-    window.clearTimeout(state.visibilityHandle);
-    state.visibilityHandle = null;
-  }
-}
-
-// Update the visibility of all video controls.
-function watchVisiblity () {
-  state.videoControls.forEach(function (controls) {
-    controls.visiblity();
-  });
-  window.setTimeout(watchVisiblity, 200);
-}
-
-// ---------------------------------------------------------------------------------------------------------------------
-
-// Fetch the video controls template.
-function getTemplate () {
-  return new Promise((resolve, reject) => {
-    var xhr = new window.XMLHttpRequest();
-    xhr.open('GET', browser.extension.getURL('/content/controls.html'));
-    xhr.onreadystatechange = () => {
-      if (xhr.readyState === 4) {
-        let template = document.createElement('template');
-        template.innerHTML = xhr.response;
-        resolve(template.content.firstChild);
-      }
-    };
-    xhr.send();
-  });
-}
+// --------------------------------------------------------------------------------------------------------------------
 
 // Format a time in seconds as 0:00:00.
 function formatTime (time) {
@@ -378,9 +414,7 @@ function formatTime (time) {
 // Match a simple glob pattern against an input.
 function globMatches (glob, input) {
   // Get the *-delimited parts of the glob.
-  let parts = glob.split('*');
-  let firstPart = parts[0];
-  let lastPart = parts[parts.length - 1];
+  const parts = glob.split('*');
 
   // If the glob is longer than the string, it can't match.
   if (parts.join('').length > input.length) {
