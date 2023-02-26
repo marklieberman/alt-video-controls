@@ -1,9 +1,9 @@
 'use strict';
 
-var gulp     = require('gulp'),
-    jshint   = require('gulp-jshint'),
-    sass     = require('gulp-sass'),
-    zip      = require('gulp-zip');
+var gulp   = require('gulp'),
+    eslint = require('gulp-eslint'),
+    sass   = require('gulp-sass')(require('sass')),
+    zip    = require('gulp-zip');
 
 var sources = {
   js: [
@@ -17,29 +17,39 @@ var sources = {
   ]
 };
 
-gulp.task('default', [ 'lint', 'sass', 'watch' ]);
+function watchFiles () {
+  gulp.watch(sources.js, lintTask);
+  
+  // Other sass files import these, so build them when these change.
+  gulp.watch(sources.watch.sass, sassTask);
+}
 
-gulp.task('watch', [ 'sass' ], function () {
-  gulp.watch(sources.js, [ 'lint' ]);
-  gulp.watch(sources.sass, [ 'sass' ]);
-});
-
-gulp.task('sass', function () {
-  gulp.src(sources.sass)
+function sassTask () {
+  return gulp.src(sources.sass)
     .pipe(sass().on('error', sass.logError))
-    .pipe(gulp.dest('src/content/'));
-});
+    .pipe(gulp.dest(function (file) {
+      return file.base;
+    }));
+}
 
-gulp.task('lint', function () {
+function lintTask () {
   return gulp.src(sources.js)
-    .pipe(jshint())
-    .pipe(jshint.reporter('jshint-stylish'));
-});
+    .pipe(eslint())
+    .pipe(eslint.format())
+    .pipe(eslint.failAfterError());
+}
 
-gulp.task('dist', [ 'lint', 'sass' ], function () {
+function distTask () {
   return gulp.src(sources.dist)
-    .pipe(zip('alt-video-controls.xpi', {
+    .pipe(zip('alt-video-control.xpi', {
       compress: false
     }))
     .pipe(gulp.dest('dist'));
-});
+}
+
+exports.sass = sassTask;
+exports.lint = lintTask;
+
+exports.watch = gulp.series(sassTask, watchFiles);
+exports.default = gulp.series(lintTask, watchFiles);
+exports.dist = gulp.series(lintTask, sassTask, distTask);
