@@ -1,0 +1,13 @@
+#options-form {
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+#options-form .volume-controls {
+  align-items: baseline;
+}
+#options-form .restore-settings {
+  margin-bottom: 0;
+}
+#options-form .restore-settings input {
+  display: none;
+}

@@ -17,5 +17,8 @@
     "jshint": "^2.9.4",
     "jshint-stylish": "^2.2.1",
     "sass": "^1.58.3"
+  },
+  "dependencies": {
+    "bootstrap": "^4.6.2"
   }
 }

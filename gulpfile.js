@@ -10,6 +10,8 @@ var sources = {
     'src/**/*.js'
   ],
   sass: [
+    'src/options/bootstrap.scss',
+    'src/options/options.scss',
     'src/content/controls.scss'
   ],
   dist: [

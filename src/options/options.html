@@ -2,65 +2,100 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <title>Alt Video Controls Options</title>
+    <title>Youtube-DL Button Options</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <link rel="stylesheet"
-          href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
-          integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"
+          href="https://use.fontawesome.com/releases/v5.3.1/css/all.css"
+          integrity="sha384-mzrmE5qonljUremFsqc01SB46JvROS7bZs3IO2EmfFsd15uHvIt+Y8vEf7N7fWAU"
           crossorigin="anonymous">
+    <link rel="stylesheet"
+          href="bootstrap.css">
+    <link rel="stylesheet"
+          href="options.css">
   </head>
   <body>
-    <form id="options-form">
-      <div class="container-fluid">
-        <h4>Alt Video Controls Options</h4>
-
+    <form id="options-form" novalidate>
+      <div class="container">
+        <h4>Alternative Video Controls</h4>
         <div class="row">
-          <div class="col-md-6">
-            <div class="form-group">
-              <div class="form-check">
-                <input class="form-check-input" type="checkbox" id="always-mute">
-                <label class="form-check-label" for="always-mute">
-                  Always mute videos
-                </label>
-              </div>
-            </div>
-            <div class="form-group">
-              <div class="form-check">
-                <input class="form-check-input" type="checkbox" id="set-volume">
-                <label class="form-check-label" for="set-volume">
-                  Set initial volume to:
-                </label>
-              </div>
-              <div class="input-group mb-3">
-                <input class="form-control" type="number" id="initial-volume"
-                       step="1" min="1" max="100"></input>
-                <div class="input-group-append">
-                  <span class="input-group-text">%</span>
+
+          <div class="col-md-12">
+            <div class="form-row">
+              <!-- always mute -->
+              <div class="form-group col-sm-12">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="always-mute">
+                  <label class="form-check-label" for="always-mute">
+                    Always mute videos
+                  </label>
                 </div>
               </div>
             </div>
-            <div class="form-group">
-              <button class="btn btn-primary" type="submit">Save</button>
-            </div>
-          </div><!-- /col -->
-
-          <div class="col-md-6">
-            <div class="form-group">
-              <div class="form-check form-check-inline">
-                <input class="form-check-input" type="radio" id="blacklist-mode"
-                       name="whitelistMode" value="blacklist" checked="true">
-                <label class="form-check-label" for="blacklist-mode">Blacklist</label>
+            <div class="form-row volume-controls">
+              <!-- set inital volume -->
+              <div class="form-group col-lg-9">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="set-volume">
+                  <label class="form-check-label" for="set-volume">
+                    Always set volume on videos.
+                  </label>
+                </div>
               </div>
-              <div class="form-check form-check-inline">
-                <input class="form-check-input" type="radio" id="whitelist-mode"
-                       name="whitelistMode" value="whitelist">
-                <label class="form-check-label" for="whitelist-mode">Whitelist</label>
+              <!-- inital volume -->
+              <div class="form-group col-lg-3">
+                <div class="input-group">
+                  <div class="input-group-prepend">
+                    <span class="input-group-text">Volume</span>
+                  </div>
+                  <input class="form-control" type="number" id="initial-volume"
+                        step="1" min="1" max="100"></input>
+                  <div class="input-group-append">
+                    <span class="input-group-text">%</span>
+                  </div>
+                </div>
               </div>
-              <textarea class="form-control" id="blacklist" rows="5"></textarea>
             </div>
-          </div><!-- /col -->
-        </div><!-- /row -->
+            <div class="form-row">
+              <!-- blacklist/whitelist -->
+              <div class="form-group col-sm-12">
+                <div class="form-check form-check-inline">
+                  <input class="form-check-input" type="radio" id="blacklist-mode"
+                        name="whitelistMode" value="blacklist" checked="true">
+                  <label class="form-check-label" for="blacklist-mode">Blacklist</label>
+                </div>
+                <div class="form-check form-check-inline">
+                  <input class="form-check-input" type="radio" id="whitelist-mode"
+                        name="whitelistMode" value="whitelist">
+                  <label class="form-check-label" for="whitelist-mode">Whitelist</label>
+                </div>
+                <textarea class="form-control" id="blacklist" rows="16"></textarea>
+              </div>
+            </div>
 
+            <hr>
+
+            <!-- controls -->
+            <div class="form-row">
+              <div class="form-group col-sm-2">                
+                <!-- save button-->
+                <button class="btn btn-primary" type="submit">
+                  Save
+                </button>
+              </div>
+              <!-- backup and restore buttons -->
+              <div class="form-group col-sm-10 text-right">                
+                <button id="backup-settings" class="btn btn-secondary" type="button">
+                  Backup Settings
+                </button>
+                <label class="btn btn-secondary btn-file restore-settings">
+                  Restore Settings
+                  <input id="restore-settings" type="file" accepts="*.json"></input>
+                </label>
+              </div>
+            </div>
+          </div>
+
+        </div>
       </div>
     </form>
 
