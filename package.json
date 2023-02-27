@@ -1,6 +1,6 @@
 {
   "name": "alt-video-controls",
-  "version": "1.0.7",
+  "version": "1.1.0",
   "description": "Alternative controls for video elements",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",

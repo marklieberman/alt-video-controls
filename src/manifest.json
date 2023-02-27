@@ -2,8 +2,8 @@
 
   "manifest_version": 2,
   "name": "Alternative Video Controls",
-  "version": "1.0.7",
-  "applications": {
+  "version": "1.1.0",
+  "browser_specific_settings": {
     "gecko": {
       "id": "{08529699-4e99-4b28-8737-59e800d01538}"
     }
